@@ -342,7 +342,6 @@ int adlak_os_alloc_discontiguous(struct adlak_mem *mm, struct adlak_mem_handle *
     if (ADLAK_ENUM_MEMTYPE_INNER_PA_WITHIN_4G & mm_info->req.mem_type) {
         gfp |= (__GFP_DMA32);
     }
-    gfp |= (__GFP_DMA32);
 
     for (i = 0; i < mm_info->nr_pages; ++i) {
         pages[i] = alloc_page(gfp);
@@ -418,7 +417,6 @@ int adlak_os_alloc_contiguous(struct adlak_mem *mm, struct adlak_mem_handle *mm_
     if (ADLAK_ENUM_MEMTYPE_INNER_PA_WITHIN_4G & mm_info->req.mem_type) {
         gfp |= (__GFP_DMA32);
     }
-    gfp |= (__GFP_DMA32);
     page_continue = alloc_pages(gfp, order);
     if (unlikely(!page_continue)) {
         AML_LOG_ERR("alloc_pages %d fail", order);
