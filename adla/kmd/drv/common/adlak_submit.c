@@ -251,7 +251,7 @@ static uint32_t adlak_gen_dep_cmd(int dependency_mode, const struct adlak_submit
 
     {
         bool     has_pwe_dependency = false, has_pwx_dependency = false, has_rs_dependency = false;
-        int64_t  pwe_dlid = -1, pwx_dlid = -1, rs_dlid = -1;
+        int32_t  pwe_dlid = -1, pwx_dlid = -1, rs_dlid = -1;
         int      i;
         uint32_t dependency;
 
@@ -273,15 +273,15 @@ static uint32_t adlak_gen_dep_cmd(int dependency_mode, const struct adlak_submit
             dep = &pdep_fixups_base[task->dep_info_offset + i];
             switch (dep->module) {
                 case ADLAK_DEPENDENCY_MODULE_PWE:
-                    pwe_dlid = max(pwe_dlid, (int64_t)dep->dep_id);
+                    pwe_dlid = max(pwe_dlid, dep->dep_id);
                     break;
 
                 case ADLAK_DEPENDENCY_MODULE_PWX:
-                    pwx_dlid = max(pwx_dlid, (int64_t)dep->dep_id);
+                    pwx_dlid = max(pwx_dlid, dep->dep_id);
                     break;
 
                 case ADLAK_DEPENDENCY_MODULE_RS:
-                    rs_dlid = max(rs_dlid, (int64_t)dep->dep_id);
+                    rs_dlid = max(rs_dlid, dep->dep_id);
                     break;
 
                 default:
@@ -292,12 +292,12 @@ static uint32_t adlak_gen_dep_cmd(int dependency_mode, const struct adlak_submit
             }
         }
 #if ADLAK_DEBUG_CMQ_PATTTCHING_EN
-        AML_LOG_DEBUG("pwe_dlid =%lld, pwx_dlid =%lld,rs_dlid=%lld", pwe_dlid, pwx_dlid, rs_dlid);
+        AML_LOG_DEBUG("pwe_dlid =%ld, pwx_dlid =%ld,rs_dlid=%ld", pwe_dlid, pwx_dlid, rs_dlid);
 #endif
         if (pwe_dlid >= 0) {
             if (pwe_dlid >= pwe_flid_offset) {
 #if ADLAK_DEBUG_CMQ_PATTTCHING_EN
-                AML_LOG_DEBUG("pwe_dlid =%lld, pwe_flid_offset =%d,start_pwe_flid=%d", pwe_dlid,
+                AML_LOG_DEBUG("pwe_dlid =%ld, pwe_flid_offset =%d,start_pwe_flid=%d", pwe_dlid,
                               pwe_flid_offset, task->start_pwe_flid);
 #endif
                 has_pwe_dependency = adlak_has_dependency(
@@ -309,7 +309,7 @@ static uint32_t adlak_gen_dep_cmd(int dependency_mode, const struct adlak_submit
         if (pwx_dlid >= 0) {
             if (pwx_dlid >= pwx_flid_offset) {
 #if ADLAK_DEBUG_CMQ_PATTTCHING_EN
-                AML_LOG_DEBUG("pwx_dlid =%lld, pwx_flid_offset =%d,start_pwx_flid=%d", pwx_dlid,
+                AML_LOG_DEBUG("pwx_dlid =%ld, pwx_flid_offset =%d,start_pwx_flid=%d", pwx_dlid,
                               pwx_flid_offset, task->start_pwx_flid);
 #endif
                 has_pwx_dependency = adlak_has_dependency(
@@ -322,7 +322,7 @@ static uint32_t adlak_gen_dep_cmd(int dependency_mode, const struct adlak_submit
         if (rs_dlid >= 0) {
             if (rs_dlid >= rs_flid_offset) {
 #if ADLAK_DEBUG_CMQ_PATTTCHING_EN
-                AML_LOG_DEBUG("rs_dlid =%lld, rs_flid_offset =%d,start_rs_flid=%d\n", rs_dlid,
+                AML_LOG_DEBUG("rs_dlid =%ld, rs_flid_offset =%d,start_rs_flid=%d\n", rs_dlid,
                               rs_flid_offset, task->start_rs_flid);
 #endif
                 has_rs_dependency = adlak_has_dependency(
@@ -446,6 +446,7 @@ static void adlak_update_module_dependency(int                             depen
     int32_t                        invoke_start_flid, dlid;
     int32_t                        i, task_start_flid, flid_offset, max_outstanding_outputs;
     uint32_t                       mode, cmq_offset;
+    int32_t                        pwe_dlid = -1, pwx_dlid = -1, rs_dlid = -1;
 
     if ((dependency_mode != ADLAK_DEPENDENCY_MODE_MODULE_LAYER) &&
         (dependency_mode != ADLAK_DEPENDENCY_MODE_MODULE_H_COUNT)) {
@@ -465,6 +466,8 @@ static void adlak_update_module_dependency(int                             depen
                 flid_offset       = pwe_flid_offset;
                 max_outstanding_outputs =
                     adlak_get_max_outstanding_outputs(ADLAK_PLATFORM_MODULE_PWE);
+                dlid     = max(pwe_dlid, dep->dep_id);
+                pwe_dlid = dlid;
                 break;
 
             case ADLAK_DEPENDENCY_MODULE_PWX:
@@ -473,6 +476,8 @@ static void adlak_update_module_dependency(int                             depen
                 flid_offset       = pwx_flid_offset;
                 max_outstanding_outputs =
                     adlak_get_max_outstanding_outputs(ADLAK_PLATFORM_MODULE_PWX);
+                dlid     = max(pwx_dlid, dep->dep_id);
+                pwx_dlid = dlid;
                 break;
 
             case ADLAK_DEPENDENCY_MODULE_RS:
@@ -481,6 +486,8 @@ static void adlak_update_module_dependency(int                             depen
                 flid_offset       = rs_flid_offset;
                 max_outstanding_outputs =
                     adlak_get_max_outstanding_outputs(ADLAK_PLATFORM_MODULE_RS);
+                dlid    = max(rs_dlid, dep->dep_id);
+                rs_dlid = dlid;
                 break;
 
             default:
@@ -489,11 +496,10 @@ static void adlak_update_module_dependency(int                             depen
                 ASSERT(0);
                 break;
         }
-        if (dep->dep_id >= flid_offset) {
-            if (adlak_has_dependency(dep->dep_id, task_start_flid, max_outstanding_outputs)) {
-                dlid = invoke_start_flid + (dep->dep_id - flid_offset) + 1;
+        if (dlid >= flid_offset) {
+            if (adlak_has_dependency(dlid, task_start_flid, max_outstanding_outputs)) {
+                dlid = invoke_start_flid + (dlid - flid_offset) + 1;
                 mode = dep->dep_modes[dependency_mode];
-
                 cmq_offset =
                     adlak_cmq_cal_tail(buffer, cmq_offset_cfg, (dep->id_loc / sizeof(uint32_t)));
                 buffer->data[cmq_offset] = (buffer->data[cmq_offset] & (~dep->id_mask)) |
