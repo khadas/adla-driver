@@ -93,7 +93,7 @@ int adlak_profile_stop(struct adlak_device *padlak, struct adlak_context *contex
         }
     } else if (padlak->save_time_en) {
         pm_stat->finish = adlak_os_ktime_get();
-        if (!pm_stat->start) {
+        if (pm_stat->start) {
             time_elapsed_us =(uint32_t)adlak_os_ktime_us_delta(pm_stat->finish, pm_stat->start);
         }
         context->invoke_time_elapsed_tmp += time_elapsed_us;
