@@ -8,7 +8,10 @@ endif
 
 LOCAL_PATH=$(CURDIR)
 
-
+KOUT_DIR ?= .
+$(info "KOUT_DIR : $(KOUT_DIR)")
+$(info "KERNEL_SRC : $(KERNEL_SRC)")
+$(info "KBUILD_OUTPUT : $(KBUILD_OUTPUT)")
 
 HAS_PM_DOMAIN ?= 1
 DEBUG ?= 0
@@ -36,16 +39,26 @@ EXTRA_INCLUDE += -I $(LOCAL_PATH)/adla/kmd/drv/common
 EXTRA_INCLUDE += -I $(LOCAL_PATH)/adla/kmd/drv
 
 
+
+ifeq ($(KOUT_DIR),.)
+# use abs source path
+KMOD_DIR := $(LOCAL_PATH)/adla/kmd
+else
+# use relative path, for set the output folder
+KMOD_DIR := $(KOUT_DIR)/adla/kmd
+endif
+$(info "KMOD_DIR : $(KMOD_DIR)")
+
 modules:
-	$(MAKE) -C $(KERNEL_SRC) M=$(LOCAL_PATH)/adla/kmd  modules "EXTRA_LDFLAGS+=$(EXTRA_LDFLAGS1)" "EXTRA_CFLAGS+= -Wno-error $(EXTRA_CFLAGS1)  $(EXTRA_INCLUDE)"
+	$(MAKE) -C $(KERNEL_SRC) M=$(KMOD_DIR) modules "EXTRA_LDFLAGS+=$(EXTRA_LDFLAGS1)" "EXTRA_CFLAGS+= -Wno-error $(EXTRA_CFLAGS1)  $(EXTRA_INCLUDE)"
 
 
 all:modules
 
 
 clean:
-	$(MAKE) -C $(KERNEL_SRC) M=$(LOCAL_PATH)/adla/kmd clean
+	$(MAKE) -C $(KERNEL_SRC) M=$(KMOD_DIR) clean
 
 help:
-	$(MAKE) -C $(KERNEL_SRC) M=$(LOCAL_PATH)/adla/kmd help
+	$(MAKE) -C $(KERNEL_SRC) M=$(KMOD_DIR) help
 
